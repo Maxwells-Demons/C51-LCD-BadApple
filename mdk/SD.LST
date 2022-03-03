@@ -1,0 +1,267 @@
+C51 COMPILER V9.54   SD                                                                    03/03/2022 18:20:12 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SD
+OBJECT MODULE PLACED IN .\obj\SD.obj
+COMPILER INVOKED BY: C:\Keil\v5\C51\BIN\C51.EXE SD.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND OBJECT(.\obj\SD.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "SD.h"
+   3          sbit ACC0=ACC^0;
+   4          sbit ACC1=ACC^1;
+   5          sbit ACC2=ACC^2;
+   6          sbit ACC3=ACC^3;
+   7          sbit ACC4=ACC^4;
+   8          sbit ACC5=ACC^5;
+   9          sbit ACC6=ACC^6;
+  10          sbit ACC7=ACC^7;
+  11          //定义SD卡需要的4根信号线
+  12          sbit SD_CLK = P1^0;
+  13          sbit SD_DI  = P1^2;
+  14          sbit SD_DO  = P1^1;
+  15          sbit SD_CS  = P1^3;
+  16          
+  17          unsigned long  SD_ADDR=0;
+  18          unsigned int count;
+  19          unsigned char xdata DATA[512];
+  20          //写一字节到SD卡,模拟SPI总线方式
+  21          void SdWrite(unsigned char DATA)
+  22          {
+  23   1          ACC=DATA;
+  24   1          SD_CLK=0;
+  25   1          SD_DI=ACC7;
+  26   1          SD_CLK=1;
+  27   1      
+  28   1          SD_CLK=0;
+  29   1          SD_DI=ACC6;
+  30   1          SD_CLK=1;
+  31   1      
+  32   1          SD_CLK=0;
+  33   1          SD_DI=ACC5;
+  34   1          SD_CLK=1;
+  35   1      
+  36   1          SD_CLK=0;
+  37   1          SD_DI=ACC4;
+  38   1          SD_CLK=1;
+  39   1      
+  40   1          SD_CLK=0;
+  41   1          SD_DI=ACC3;
+  42   1          SD_CLK=1;
+  43   1      
+  44   1          SD_CLK=0;
+  45   1          SD_DI=ACC2;
+  46   1          SD_CLK=1;
+  47   1      
+  48   1          SD_CLK=0;
+  49   1          SD_DI=ACC1;
+  50   1          SD_CLK=1;
+  51   1      
+  52   1          SD_CLK=0;
+  53   1          SD_DI=ACC0;
+  54   1          SD_CLK=1;
+  55   1          SD_DI=1;//在空闲状态下DI需为高电平 
+C51 COMPILER V9.54   SD                                                                    03/03/2022 18:20:12 PAGE 2   
+
+  56   1      }
+  57          //从SD卡读一字节,模拟SPI总线方式
+  58          unsigned char SdRead()
+  59          {
+  60   1          SD_CLK=0;
+  61   1          SD_CLK=1;
+  62   1          ACC7=SD_DO;
+  63   1      
+  64   1          SD_CLK=0;
+  65   1          SD_CLK=1;
+  66   1          ACC6=SD_DO;
+  67   1      
+  68   1          SD_CLK=0;
+  69   1          SD_CLK=1;
+  70   1          ACC5=SD_DO;
+  71   1      
+  72   1          SD_CLK=0;
+  73   1          SD_CLK=1;
+  74   1          ACC4=SD_DO;
+  75   1      
+  76   1          SD_CLK=0;
+  77   1          SD_CLK=1;
+  78   1          ACC3=SD_DO;
+  79   1      
+  80   1          SD_CLK=0;
+  81   1          SD_CLK=1;
+  82   1          ACC2=SD_DO;
+  83   1      
+  84   1          SD_CLK=0;
+  85   1          SD_CLK=1;
+  86   1          ACC1=SD_DO;
+  87   1      
+  88   1          SD_CLK=0;
+  89   1          SD_CLK=1;
+  90   1          ACC0=SD_DO;
+  91   1          return ACC;
+  92   1      }
+  93          //检测SD卡的响应
+  94          unsigned char SdResponse()
+  95          {
+  96   1          unsigned char i=0,response;
+  97   1          
+  98   1          while(i<=8)
+  99   1          {
+ 100   2              response = SdRead();
+ 101   2              if(response==0x00)
+ 102   2              break;
+ 103   2              if(response==0x01)
+ 104   2              break;
+ 105   2              i++;
+ 106   2          }
+ 107   1          return response;
+ 108   1      } 
+ 109          //发命令到SD卡
+ 110          void SdCommand(unsigned char command, unsigned long argument, unsigned char CRC)
+ 111          {
+ 112   1      
+ 113   1          SdWrite(command|0x40);
+ 114   1          SdWrite(((unsigned char *)&argument)[0]);
+ 115   1          SdWrite(((unsigned char *)&argument)[1]);
+ 116   1          SdWrite(((unsigned char *)&argument)[2]);
+ 117   1          SdWrite(((unsigned char *)&argument)[3]);
+C51 COMPILER V9.54   SD                                                                    03/03/2022 18:20:12 PAGE 3   
+
+ 118   1          SdWrite(CRC);
+ 119   1      }
+ 120          //初始化SD卡
+ 121          unsigned char SdInit(void)
+ 122          {
+ 123   1          int delay=0, trials=0;
+ 124   1          unsigned char i;
+ 125   1          unsigned char response=0x01;
+ 126   1          
+ 127   1          SD_CS=1;
+ 128   1          for(i=0;i<=9;i++)
+ 129   1          SdWrite(0xff);
+ 130   1          SD_CS=0;
+ 131   1          
+ 132   1          //Send Command 0 to put MMC in SPI mode
+ 133   1          SdCommand(0x00,0,0x95);
+ 134   1          
+ 135   1          
+ 136   1          response=SdResponse();
+ 137   1          
+ 138   1          if(response!=0x01)
+ 139   1          {
+ 140   2              return 0;
+ 141   2          } 
+ 142   1      
+ 143   1          while(response==0x01)
+ 144   1          {
+ 145   2              SD_CS=1;
+ 146   2              SdWrite(0xff);
+ 147   2              SD_CS=0;
+ 148   2              SdCommand(0x01,0x00ffc000,0xff);
+ 149   2              response=SdResponse();
+ 150   2          } 
+ 151   1      
+ 152   1          SD_CS=1;
+ 153   1          SdWrite(0xff);
+ 154   1          return 1; 
+ 155   1      }
+ 156          //往SD卡指定地址写数据,一次最多512字节
+ 157          unsigned char SdWriteBlock(unsigned char *Block, unsigned long address,int len)
+ 158          {
+ 159   1          unsigned int count;
+ 160   1          unsigned char dataResp;
+ 161   1          //Block size is 512 bytes exactly
+ 162   1          //First Lower SS
+ 163   1          
+ 164   1          SD_CS=0;
+ 165   1          //Then send write command
+ 166   1          SdCommand(0x18,address,0xff);
+ 167   1          
+ 168   1          if(SdResponse()==00)
+ 169   1          {
+ 170   2              SdWrite(0xff);
+ 171   2              SdWrite(0xff);
+ 172   2              SdWrite(0xff);
+ 173   2              //command was a success - now send data
+ 174   2              //start with DATA TOKEN = 0xFE
+ 175   2              SdWrite(0xfe);
+ 176   2              //now send data
+ 177   2              for(count=0;count<len;count++) SdWrite(*Block++);
+ 178   2              
+ 179   2              for(;count<512;count++) SdWrite(0);
+C51 COMPILER V9.54   SD                                                                    03/03/2022 18:20:12 PAGE 4   
+
+ 180   2              //data block sent - now send checksum
+ 181   2              SdWrite(0xff); //两字节CRC校验, 为0XFFFF 表示不考虑CRC
+ 182   2              SdWrite(0xff);
+ 183   2              //Now read in the DATA RESPONSE token
+ 184   2              dataResp=SdRead();
+ 185   2              //Following the DATA RESPONSE token
+ 186   2              //are a number of BUSY bytes
+ 187   2              //a zero byte indicates the MMC is busy
+ 188   2              
+ 189   2              while(SdRead()==0);
+ 190   2              
+ 191   2              dataResp=dataResp&0x0f; //mask the high byte of the DATA RESPONSE token
+ 192   2              SD_CS=1;
+ 193   2              SdWrite(0xff);
+ 194   2              if(dataResp==0x0b)
+ 195   2              {
+ 196   3                  return 0;
+ 197   3              }
+ 198   2              if(dataResp==0x05)
+ 199   2                 return 1;
+ 200   2              return 0;
+ 201   2          }
+ 202   1          return 0;
+ 203   1      }
+ 204          
+ 205          //从SD卡指定地址读取数据,一次最多512字节
+ 206          unsigned char SdReadBlock(unsigned char *Block, unsigned long address,int len)
+ 207          {
+ 208   1          unsigned int count;
+ 209   1          //Block size is 512 bytes exactly
+ 210   1          //First Lower SS
+ 211   1          
+ 212   1          
+ 213   1          SD_CS=0;
+ 214   1          //Then send write command
+ 215   1          SdCommand(0x11,address,0xff);
+ 216   1      
+ 217   1          if(SdResponse()==00)
+ 218   1          {
+ 219   2              //command was a success - now send data
+ 220   2              //start with DATA TOKEN = 0xFE
+ 221   2              while(SdRead()!=0xfe);
+ 222   2              
+ 223   2              for(count=0;count<len;count++) *Block++=SdRead(); 
+ 224   2              
+ 225   2              for(;count<512;count++) SdRead();
+ 226   2              
+ 227   2              //data block sent - now send checksum
+ 228   2              SdRead();
+ 229   2              SdRead();
+ 230   2              //Now read in the DATA RESPONSE token
+ 231   2              SD_CS=1;
+ 232   2              SdRead();
+ 233   2              return 1;
+ 234   2          }
+ 235   1          return 0;
+ 236   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    558    ----
+   CONSTANT SIZE    =   ----    ----
+C51 COMPILER V9.54   SD                                                                    03/03/2022 18:20:12 PAGE 5   
+
+   XDATA SIZE       =    512    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

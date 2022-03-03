@@ -1,0 +1,72 @@
+C51 COMPILER V9.54   MAIN                                                                  03/03/2022 18:20:12 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\obj\main.obj
+COMPILER INVOKED BY: C:\Keil\v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND OBJECT(.\obj\main.obj
+                    -)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "SD.h"
+   3          #include "lcd.h"
+   4          
+   5          
+   6          
+   7          
+   8          
+   9          
+  10          void main(void)
+  11          {
+  12   1          char bb;
+  13   1          bb=0;
+  14   1          LCD_Init();
+  15   1          LCD_Clear();
+  16   1          SdInit();
+  17   1          DATA[0]=255;;
+  18   1          DATA[1]=1;
+  19   1          DATA[2]=2;
+  20   1          DATA[3]=3;
+  21   1          DATA[511]=0xf0;
+  22   1          //SdWriteBlock(DATA,2,512);
+  23   1      
+  24   1      
+  25   1      //      Dis_Picture(gImage_inba);
+  26   1      //      Dis_Pictureb(gImage_inba+512);
+  27   1      //      while(1);
+  28   1      
+  29   1          
+  30   1          for(count=0;count<2192;count++)
+  31   1          {
+  32   2                   
+  33   2                      SdReadBlock(DATA,SD_ADDR,512);
+  34   2              SD_ADDR+=512;
+  35   2              Dis_Picture(DATA);
+  36   2      
+  37   2              SdReadBlock(DATA,SD_ADDR,512);
+  38   2                      SD_ADDR+=512;
+  39   2                      Dis_Pictureb(DATA);
+  40   2              delayms(12);
+  41   2              bb++;
+  42   2          }
+  43   1          SD_ADDR=0;
+  44   1          
+  45   1              while(1);
+  46   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    183    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+C51 COMPILER V9.54   MAIN                                                                  03/03/2022 18:20:12 PAGE 2   
+
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
